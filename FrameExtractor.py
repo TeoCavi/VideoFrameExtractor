@@ -1,40 +1,105 @@
-# import all components
-# from the tkinter library
 from tkinter import *
-
-# import filedialog module
 from tkinter import filedialog
 from tkinter import messagebox
-
 import cv2
 import os
+import shutil
 import numpy as np
-import math
+import math #da eliminare
 
-#check = 1
-# Function for opening the
-# file explorer window
-def browseFiles():
+def BrowseDataset():
+    global dataset_dir
+    dataset_dir = filedialog.askdirectory()
+
+
+def DirectoryCreation():
     global check
+    global new_patient
     global filename
+    filetype = (("avi files", "*.avi"), ("all files", "*.*"))
     filename = filedialog.askopenfilename(initialdir = "/",
                                           title = "Select Video",
-                                          filetypes = (("avi files",
-                                                        "*.avi*"),
-                                                        ("all files",
-                                                        "*.*")))
+                                          filetypes = filetype )
+    full_name = os.path.splitext(os.path.basename(filename))
+    name = os.path.splitext(os.path.basename(filename))[0]
+    fname = name.split("_")
 
-    # Change label contents
-    label_file_explorer.configure(text="File Opened: "+filename)
-    check = int(os.path.isdir(os.path.dirname(filename)+ '\Patient'))
-    if(check == 1):
-        messagebox.showerror("Error", "One set of images already exist; remove the directory and try again")
+    pid = str(fname[0])
+    task = fname[1]
+    video_num = str(fname[2])
+
+    label_file_explorer.configure(text="Patient n°: "+pid)
+
+    patients = next(os.walk(dataset_dir))[1]
+
+    new_patient = 1
+    for patient in patients:
+        if (patient == f"Patient_{pid}"):
+            new_patient = 0
+
+    first_level_dir = ["Video","Images","Segmentations"]
+    patient_dir = os.path.join(dataset_dir, f"Patient_{pid}")
+    video_folder = os.path.join(patient_dir, first_level_dir[0])
+    image_folder = os.path.join(patient_dir, first_level_dir[1])
+    video_folder_task = os.path.join(patient_dir, first_level_dir[0], task)
+    image_folder_task = os.path.join(patient_dir, first_level_dir[1], task)
+    segmentation_folder_task = os.path.join(patient_dir, first_level_dir[2], task)
+
+    if new_patient == 1: #nuovo paziente nel database
+        case = "NewPatient"
+        os.mkdir(patient_dir)
+
+        for dir in first_level_dir:
+            os.mkdir(os.path.join(patient_dir, dir))
+
+        os.mkdir(video_folder_task)
+        os.mkdir(image_folder_task)
+        os.mkdir(segmentation_folder_task)
+        shutil.copy(filename, video_folder_task)
+
+        messagebox.showerror("Error", case)
+
+    if new_patient == 0: #paziente già inserito
+        tasks = next(os.walk(video_folder))[1] #[1] --> detects directories
+        for t in tasks:
+            if t == task:
+                videos = next(os.walk(video_folder_task))[2] #[2]--> detects files
+                for v in videos:
+                    if v == full_name:
+                        case = "ChangeNumFrame"
+                        messagebox.showerror("Error", case)
+
+                    else:
+                        case = "NewVideoSameTask"
+                        shutil.copy(filename, video_folder_task)
+                        messagebox.showerror("Error", case)
+                        break
+
+            else:
+                case = "NewVideoDiffTask"
+                os.mkdir(video_folder_task)
+                os.mkdir(image_folder_task)
+                os.mkdir(segmentation_folder_task)
+                shutil.copy(filename, video_folder_task)
+                messagebox.showerror("Error", case)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 def slicing():
 
-    cap = cv2.VideoCapture(filename)
+    cap = cv2.VideoCapture(os.path.join(video_folder,full_name))
     frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     if(int(frame.get())>1 and int(frame.get())<frameCount and check == 0 ):
@@ -53,98 +118,83 @@ def slicing():
         cap.release()
 
         frames = buf.shape[0]
-        #image_to_extract = int(input('How many images do you want to extract from video? :'))
-
         image_to_extract = int(frame.get())
-        NEW_DIR = os.path.dirname(filename)+ '\Patient'
-        new_dir_path = NEW_DIR
-        os.mkdir(new_dir_path)
 
         fc = 0
         ret = True
 
-        j = 1
-        step = math.trunc(frames/image_to_extract)
+        step = int(frames/image_to_extract)
         for i in range(0, frames, step):
-            cv2.imwrite(os.path.join(new_dir_path, 'Paz_Task_%d.tiff' % j), buf[i,:,:])
-            j = j + 1
-            if j == image_to_extract+1: break
+            cv2.imwrite(os.path.join(image_folder, f"p{pid}_t{task}_n{video_num}_f{i}"), buf[i,:,:])
+            if i >= image_to_extract: break
     elif(check == 1):
         messagebox.showerror("Error", "One set of images already exist; remove the directory and try again")
     else:
         messagebox.showerror("Error", "Incorrect n° of slice")
 
-# Create the root window
+
+
+
+
+
+
+
+
+
+    check = int(os.path.isdir(os.path.dirname(filename)+ '\Patient'))
+    if(check == 1):
+        messagebox.showerror("Error", "One set of images already exist; remove the directory and try again")
+
+
+
+
+
+
+
+
+
 window = Tk()
-
-# Set window title
 window.title('Video Slicer')
+#window.geometry("500x500")
+window.grid_columnconfigure(5, minsize=100)
+window.grid_rowconfigure(5, minsize=100)
 
-windowWidth = window.winfo_reqwidth()
-windowHeight = window.winfo_reqheight()
 
-# Gets both half the screen width/height and window width/height
-positionRight = int(window.winfo_screenwidth()/2 - windowWidth/2)
-positionDown = int(window.winfo_screenheight()/2 - windowHeight/2)
 
-# Positions the window in the center of the page.
-window.geometry("+{}+{}".format(positionRight, positionDown))
 
-#Set window background color
-window.config(background = "#D1F2EB")
 
-# Create a File Explorer label
 label_file_explorer = Label(window,
                             text = "Video Slicer",
                             width = 100, height = 4,
-                            background = "#D1F2EB",
                             fg = "#154360")
 
-button_explore = Button(window,
-                        text = "Browse Files",
+button_explore_dataset = Button(window,
+                        text = "Browse Dataset",
                         background = "#48C9B0",
-                        command = browseFiles)
+                        command = BrowseDataset)
 
-label_slice = Label(window,
-                    text = "Select n° of frames:",
-                    background = "#D1F2EB",
-                    fg = "#154360").grid(row = 3)
-
-frame = Entry(window)
-
-button_slice = Button(window,
-                     text = "Start Slice",
-                     background = "#48C9B0",
-                     command = slicing )
-
-button_exit = Button(window,
-                     text = "Exit",
-                     background = "#48C9B0",
-                     command = exit )
-
-style_label = Label(window,
-                    text = "   ",
-                    width = 100, height = 4,
-                    background = "#D1F2EB")
-
-# Grid method is chosen for placing
-# the widgets at respective positions
-# in a table like structure by
-# specifying rows and columns
-label_file_explorer.grid(column = 1, row = 1)
-
-button_explore.grid(column = 1, row = 2)
-
-#label_slice.grid(column = 1, row = 3)
-
-frame.grid(column = 1,row = 3)
-
-button_slice.grid(column = 1,row = 4)
-
-button_exit.grid(column = 1,row = 5)
-
-style_label.grid(column = 1, row = 6)
+button_explore_video = Button(window,
+                        text = "Browse Video",
+                        background = "#48C9B0",
+                        command = DirectoryCreation)
 
 
-# Let the window wait for any events
+
+label_file_explorer.grid(column = 2, row = 1)
+
+button_explore_dataset.grid(column = 2, row= 2)
+
+button_explore_video.grid(column = 2, row = 3)
+
 window.mainloop()
+
+
+
+
+
+
+
+
+#parent = 'C:\\Users\matte\Google Drive\Segmentazione PoliMi'
+#folder = 'Dataset'
+#os.mkdir(os.path.join(parent, folder))
