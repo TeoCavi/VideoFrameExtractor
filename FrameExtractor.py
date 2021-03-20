@@ -7,30 +7,31 @@ import shutil
 import numpy as np
 
 
+
+
 def BrowseDataset():
     global dataset_dir
     dataset_dir = filedialog.askdirectory()
 
 
 def DirectoryCreation():
-    global check
-    global new_patient
-    global filename
+    global cap, frameCount
+    global image_folder_task
+    global pid, task, video_num
+
     filetype = (("avi files", "*.avi"), ("all files", "*.*"))
     filename = filedialog.askopenfilename(initialdir = "/",
                                           title = "Select Video",
                                           filetypes = filetype )
 
     full_name = os.path.basename(filename)
-    print(full_name)
+
     name = os.path.splitext(os.path.basename(filename))[0]
     fname = name.split("_")
 
     pid = str(fname[0])
     task = fname[1]
     video_num = str(fname[2])
-
-    label_file_explorer.configure(text="Patient n°: "+pid)
 
     patients = next(os.walk(dataset_dir))[1]
 
@@ -59,11 +60,10 @@ def DirectoryCreation():
         os.mkdir(segmentation_folder_task)
         shutil.copy(filename, video_folder_task)
 
-        messagebox.showerror("Error", case)
-
     if new_patient == 0: #paziente già inserito
         tasks = next(os.walk(video_folder))[1] #[1] --> detects directories
 
+        case = "NewVideoDiffTask"
         for t in tasks:
             if t == task:
                 videos = next(os.walk(video_folder_task))[2] #[2]--> detects files
@@ -73,41 +73,26 @@ def DirectoryCreation():
                     if v == full_name:
                         case = "ChangeNumFrame"
 
-                if(case == "ChangeNumFrame"):
-                    messagebox.showerror("Error", case)
                 if(case == "NewVideoSameTask"):
                     shutil.copy(filename, video_folder_task)
-                    messagebox.showerror("Error", case)
 
+        if (case == "NewVideoDiffTask"):
+            os.mkdir(video_folder_task)
+            os.mkdir(image_folder_task)
+            os.mkdir(segmentation_folder_task)
+            shutil.copy(filename, video_folder_task)
 
-            else:
-                case = "NewVideoDiffTask"
-                os.mkdir(video_folder_task)
-                os.mkdir(image_folder_task)
-                os.mkdir(segmentation_folder_task)
-                shutil.copy(filename, video_folder_task)
-                messagebox.showerror("Error", case)
+    cap = cv2.VideoCapture(os.path.join(video_folder_task,full_name))
+    frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-
-
-
-
-
-
-
-
-
-
-
+    label_file_explorer.configure(text=f"Patient n°: {pid}\n N° of frames: {frameCount}\n Case: {case}  ",
+                                  width = 100, height = 6)
 
 
 
 def slicing():
 
-    cap = cv2.VideoCapture(os.path.join(video_folder,full_name))
-    frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-    if(int(frame.get())>1 and int(frame.get())<frameCount and check == 0 ):
+    if(int(frame.get())>1 and int(frame.get())<frameCount):
 
         frameWidth = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         frameHeight = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -127,35 +112,15 @@ def slicing():
 
         fc = 0
         ret = True
+        j = 0
 
         step = int(frames/image_to_extract)
         for i in range(0, frames, step):
-            cv2.imwrite(os.path.join(image_folder, f"p{pid}_t{task}_n{video_num}_f{i}"), buf[i,:,:])
-            if i >= image_to_extract: break
-    elif(check == 1):
-        messagebox.showerror("Error", "One set of images already exist; remove the directory and try again")
+            cv2.imwrite(os.path.join(image_folder_task, f"p{pid}_t{task}_n{video_num}_f{i}.tiff"), buf[i,:,:])
+            j = j + 1
+            if j == image_to_extract: break
     else:
-        messagebox.showerror("Error", "Incorrect n° of slice")
-
-
-
-
-
-
-
-
-
-
-    check = int(os.path.isdir(os.path.dirname(filename)+ '\Patient'))
-    if(check == 1):
-        messagebox.showerror("Error", "One set of images already exist; remove the directory and try again")
-
-
-
-
-
-
-
+        messagebox.showerror("Error", "N° of selected frames exeeds the max N° of video frames")
 
 
 window = Tk()
@@ -183,6 +148,19 @@ button_explore_video = Button(window,
                         background = "#48C9B0",
                         command = DirectoryCreation)
 
+label_slice = Label(window,
+                    text = "Select n° of frames:",
+                    background = "#D1F2EB",
+                    fg = "#154360").grid(row = 3)
+
+frame = Entry(window)
+
+button_slice = Button(window,
+                     text = "Start Slice",
+                     background = "#48C9B0",
+                     command = slicing )
+
+
 
 
 label_file_explorer.grid(column = 2, row = 1)
@@ -190,6 +168,10 @@ label_file_explorer.grid(column = 2, row = 1)
 button_explore_dataset.grid(column = 2, row= 2)
 
 button_explore_video.grid(column = 2, row = 3)
+
+frame.grid(column = 2,row = 4)
+
+button_slice.grid(column = 2,row = 5)
 
 window.mainloop()
 
