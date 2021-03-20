@@ -5,7 +5,7 @@ import cv2
 import os
 import shutil
 import numpy as np
-import math #da eliminare
+
 
 def BrowseDataset():
     global dataset_dir
@@ -20,7 +20,9 @@ def DirectoryCreation():
     filename = filedialog.askopenfilename(initialdir = "/",
                                           title = "Select Video",
                                           filetypes = filetype )
-    full_name = os.path.splitext(os.path.basename(filename))
+
+    full_name = os.path.basename(filename)
+    print(full_name)
     name = os.path.splitext(os.path.basename(filename))[0]
     fname = name.split("_")
 
@@ -61,19 +63,22 @@ def DirectoryCreation():
 
     if new_patient == 0: #paziente già inserito
         tasks = next(os.walk(video_folder))[1] #[1] --> detects directories
+
         for t in tasks:
             if t == task:
                 videos = next(os.walk(video_folder_task))[2] #[2]--> detects files
+
+                case = "NewVideoSameTask"
                 for v in videos:
                     if v == full_name:
                         case = "ChangeNumFrame"
-                        messagebox.showerror("Error", case)
 
-                    else:
-                        case = "NewVideoSameTask"
-                        shutil.copy(filename, video_folder_task)
-                        messagebox.showerror("Error", case)
-                        break
+                if(case == "ChangeNumFrame"):
+                    messagebox.showerror("Error", case)
+                if(case == "NewVideoSameTask"):
+                    shutil.copy(filename, video_folder_task)
+                    messagebox.showerror("Error", case)
+
 
             else:
                 case = "NewVideoDiffTask"
