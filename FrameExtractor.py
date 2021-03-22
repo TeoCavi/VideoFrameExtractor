@@ -6,6 +6,8 @@ import os
 import shutil
 import numpy as np
 
+BACKGROUND = "#6495ED"
+
 
 
 
@@ -125,6 +127,7 @@ def slicing():
 
 window = Tk()
 window.title('Video Slicer')
+window.config(background = BACKGROUND)
 #window.geometry("500x500")
 window.grid_columnconfigure(5, minsize=100)
 window.grid_rowconfigure(5, minsize=100)
@@ -136,6 +139,7 @@ window.grid_rowconfigure(5, minsize=100)
 label_file_explorer = Label(window,
                             text = "Video Slicer",
                             width = 100, height = 4,
+                            background = BACKGROUND,
                             fg = "#154360")
 
 button_explore_dataset = Button(window,
@@ -150,7 +154,7 @@ button_explore_video = Button(window,
 
 label_slice = Label(window,
                     text = "Select n° of frames:",
-                    background = "#D1F2EB",
+                    background = BACKGROUND,
                     fg = "#154360").grid(row = 3)
 
 frame = Entry(window)
