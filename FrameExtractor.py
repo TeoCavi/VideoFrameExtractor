@@ -7,6 +7,7 @@ import shutil
 import numpy as np
 
 BACKGROUND = "#6495ED"
+BACKGROUND_BUTTON = "#FF7F50"
 
 
 def BrowseDataset(): #Funzione invocata alla pressione del pulsante "Browse Dataset"
@@ -34,7 +35,7 @@ def DirectoryCreation(): #Funzione invocata alla pressione del pulsante "Browse 
 
     patients = next(os.walk(dataset_dir))[1] #salva in patients i nomi delle cartelle contenute in Dataset
 
-    patient_dir = os.path.join(dataset_dir, f"Patient_{pid}") #cartella Patient_ID
+    patient_dir = os.path.join(dataset_dir, f"Subject_{pid}") #cartella Subject_ID
     first_level_dir = ["Video","Images","Segmentations"] #Cartelle contenute nella cartella Patient_ID
     video_folder = os.path.join(patient_dir, first_level_dir[0]) #cartella Video
     image_folder = os.path.join(patient_dir, first_level_dir[1]) #cartella Images
@@ -45,11 +46,11 @@ def DirectoryCreation(): #Funzione invocata alla pressione del pulsante "Browse 
 
     new_patient = 1
     for patient in patients:
-        if (patient == f"Patient_{pid}"): #se il nuovo video riguarda un paziente già presente nel Dataset
+        if (patient == f"Subject_{pid}"): #se il nuovo video riguarda un paziente già presente nel Dataset
             new_patient = 0
 
     if new_patient == 1: #nuovo paziente nel database
-        case = "NewPatient"
+        case = "NewSubject"
         os.mkdir(patient_dir) #crea la cartella Patient_ID
         os.mkdir(video_folder) #crea la cartella Video
         os.mkdir(image_folder) #crea la cartella Images
@@ -83,7 +84,7 @@ def DirectoryCreation(): #Funzione invocata alla pressione del pulsante "Browse 
     cap = cv2.VideoCapture(os.path.join(video_folder_task,full_name)) # video salvato in cap
     frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) #numero totale di frame salvato in frameCount
 
-    label_file_explorer.configure(text=f"Patient n°: {pid}\n N° of frames: {frameCount}\n Case: {case}  ",
+    label_file_explorer.configure(text=f"Subject N°: {pid}\n N° of frames: {frameCount -1}\n Case: {case}  ",
                                   width = 100, height = 6)
 
 
@@ -105,7 +106,7 @@ def slicing(): #Funzione invocata alla pressione del pulsante "Start Slice"
 
         cap.release()
 
-        frames = buf.shape[0] #numero di frame salvato in  frames
+        frames = buf.shape[0]  #numero di frame salvato in  frames
         image_to_extract = int(frame.get()) #numero di frame inserite dall'utente salvate in image_to_extract
 
         fc = 0
@@ -113,8 +114,8 @@ def slicing(): #Funzione invocata alla pressione del pulsante "Start Slice"
         j = 0
 
         step = int(frames/image_to_extract)
-        for i in range(0, frames, step):
-            cv2.imwrite(os.path.join(image_folder_task, f"p{pid}_t{task}_n{video_num}_f{i}.tiff"), buf[i,:,:]) #salva le immagini nella cartella task nella cartella Images
+        for i in range(1, frames, step):
+            cv2.imwrite(os.path.join(image_folder_task, f"s{pid}_t{task}_n{video_num}_f{i}.tiff"), buf[i,:,:]) #salva le immagini nella cartella task nella cartella Images
             j = j + 1
             if j == image_to_extract: break
     else:
@@ -139,32 +140,26 @@ label_file_explorer = Label(window,
 
 label_slice = Label(window,
                     text = "Select n° of frames:",
-                    background = "#D1F2EB",
+                    background = BACKGROUND,
                     fg = "#154360")
 
 #BUTTONS
 
 button_explore_dataset = Button(window,
                         text = "Browse Dataset",
-                        background = "#48C9B0",
+                        background = BACKGROUND_BUTTON,
                         command = BrowseDataset)
 
 button_explore_video = Button(window,
                         text = "Browse Video",
-                        background = "#48C9B0",
+                        background = BACKGROUND_BUTTON,
                         command = DirectoryCreation)
-
-label_slice = Label(window,
-                    text = "Select n° of frames:",
-                    background = BACKGROUND,
-                    fg = "#154360").grid(row = 3)
-
-frame = Entry(window)
 
 button_slice = Button(window,
                      text = "Start Slice",
-                     background = "#48C9B0",
+                     background = BACKGROUND_BUTTON,
                      command = slicing )
+
 
 frame = Entry(window)
 
